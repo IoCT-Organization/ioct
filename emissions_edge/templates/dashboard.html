@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agricultural IoCT Dashboard</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f7f6;
+            color: #333;
+        }
+        .menu-bar {
+            background-color: #2e7d32;
+            padding: 10px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .menu-bar span {
+            font-weight: bold;
+        }
+        .menu-bar a {
+            color: white;
+            text-decoration: none;
+            padding: 5px 10px;
+            background-color: #388e3c;
+            border-radius: 5px;
+        }
+        .menu-bar a:hover {
+            background-color: #4CAF50;
+        }
+        h1 {
+            color: #2e7d32;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        h2 {
+            color: #388e3c;
+            font-size: 1.2em;
+            margin: 10px 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            padding: 15px;
+            text-align: center;
+        }
+        .card img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+        }
+        .alert {
+            color: #d32f2f;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .data-box {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+        }
+        .data-item {
+            margin: 10px;
+            padding: 10px;
+            background: #e8f5e9;
+            border-radius: 5px;
+            min-width: 120px;
+        }
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+        .history-table th, .history-table td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        .history-table th {
+            background: #388e3c;
+            color: white;
+        }
+        .recommendation {
+            font-style: italic;
+            color: #0288d1;
+            margin-top: 10px;
+        }
+        .plot-buttons {
+            margin-bottom: 10px;
+        }
+        .plot-buttons button {
+            padding: 8px 16px;
+            margin: 0 5px;
+            background-color: #388e3c;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .plot-buttons button:hover {
+            background-color: #2e7d32;
+        }
+        @media (max-width: 768px) {
+            .container { grid-template-columns: 1fr; }
+            .history-table { font-size: 0.8em; }
+        }
+    </style>
+</head>
+<body>
+    <div class="menu-bar">
+        <span>Welcome, Nurzaman</span>
+        <a href="#" onclick="alert('Logout functionality not implemented yet.')">Logout</a>
+    </div>
+    <h2 style="text-align: center; color: #2e7d32;">Agricultural IoCT Dashboard</h2>
+            <h2 style="margin: 0 0 5px 0; font-size: 1.1em;">📍 Danforth Field Research Site</h2>
+            <p style="margin: 0; font-size: 0.9em; color: #555;">St. Charles, Missouri, USA</p>
+    <div class="container">
+        <div class="card">
+            <h2>Current Emissions</h2>
+            <div class="plot-buttons">
+                <button onclick="switchPlot('emissions')">All</button>
+                <button onclick="switchPlot('co2')">CO2</button>
+                <button onclick="switchPlot('ch4')">CH4</button>
+                <button onclick="switchPlot('n2o')">N2O</button>
+                <button onclick="switchPlot('co2e')">CO2e</button>
+            </div>
+            <img src="/static/emissions.png" alt="Emissions Plot" id="emissions-plot">
+            <div class="data-box" id="current-data"></div>
+            <div class="alert" id="alert"></div>
+        </div>
+        <div class="card">
+            <h2>Recent History (Last 5 Readings)</h2>
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>CO2e (kg)</th>
+                        <th>Tier 1 CO2 (kg)</th>
+                        <th>Tier 1 CH4 (kg)</th>
+                        <th>Tier 1 N2O (kg)</th>
+                        <th>Tier 2 CO2 (kg)</th>
+                        <th>Tier 3 CO2 (kg)</th>
+                    </tr>
+                </thead>
+                <tbody id="history-table"></tbody>
+            </table>
+        </div>
+        <div class="card">
+            <h2>Cloud Recommendations</h2>
+            <p class="recommendation" id="recommendation">Loading...</p>
+        </div>
+    </div>
+
+    <script>
+        async function updateDashboard() {
+            const response = await fetch('/data');
+            const data = await response.json();
+
+            // Update current data
+            const current = data.current;
+            document.getElementById('current-data').innerHTML = `
+                <div class="data-item">CO2: ${current.data.Tier1.CO2.toFixed(2)} kg</div>
+                <div class="data-item">CH4: ${current.data.Tier1.CH4.toFixed(2)} kg</div>
+                <div class="data-item">N2O: ${current.data.Tier1.N2O.toFixed(2)} kg</div>
+                <div class="data-item">CO2e: ${current.co2e.toFixed(2)} kg</div>
+            `;
+            document.getElementById('alert').innerText = current.alert ? "Alert: CO2e exceeds 1 ton!" : "";
+
+            // Refresh current plot with timestamp to avoid caching
+            const plotImg = document.getElementById('emissions-plot');
+            plotImg.src = plotImg.src.split('?')[0] + `?${new Date().getTime()}`;
+
+            // Update history table with tiered sources
+            const historyTable = document.getElementById('history-table');
+            historyTable.innerHTML = '';
+            data.history.forEach(entry => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${new Date(entry.time).toLocaleTimeString()}</td>
+                    <td>${entry.co2e.toFixed(2)}</td>
+                    <td>${entry.data.Tier1.CO2.toFixed(2)}</td>
+                    <td>${entry.data.Tier1.CH4.toFixed(2)}</td>
+                    <td>${entry.data.Tier1.N2O.toFixed(2)}</td>
+                    <td>${entry.data.Tier2.CO2.toFixed(2)}</td>
+                    <td>${entry.data.Tier3.CO2.toFixed(2)}</td>
+                `;
+                historyTable.appendChild(row);
+            });
+
+            // Update recommendation
+            document.getElementById('recommendation').innerText = data.recommendation || "No recommendations yet";
+        }
+
+        function switchPlot(type) {
+            const plotImg = document.getElementById('emissions-plot');
+            plotImg.src = `/static/${type}.png?${new Date().getTime()}`;
+        }
+
+        // Initial load and refresh every 5 seconds
+        updateDashboard();
+        setInterval(updateDashboard, 5000);
+    </script>
+</body>
+</html>
